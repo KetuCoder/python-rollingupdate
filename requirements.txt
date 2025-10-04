@@ -1,2 +1,1 @@
-pip install flask
-this python app is running at 5000 port.
+flask
