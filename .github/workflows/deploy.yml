@@ -1,12 +1,36 @@
 name: Test Deploy
 
 on:
-    push:
-        branches:
-            - main
-    pull_request:
-        branches:
-            - main
-    
-    jobs:
-        
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run version check
+        run: |
+          echo "Running app.py to check version"
+          python app.py
+
+      - name: Simulate test deployment
+        run: |
+          echo "Deploying version..."
+          VERSION=$(python app.py | grep -o 'v[0-9]*')
+          echo "Deployed version is: $VERSION"
