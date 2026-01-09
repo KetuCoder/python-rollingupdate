@@ -23,5 +23,5 @@ spec:
         ports:
         - containerPort: 5000
         env:
-        - name: APP_VERSION;
+        - name: APP_VERSION
           value: "v1"
