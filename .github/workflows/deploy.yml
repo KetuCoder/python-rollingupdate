@@ -5,6 +5,10 @@ on:
     branches: [ "main" ]
   pull_request:
 
+env:
+  IMAGE_NAME: cloudketan/python-app
+  IMAGE_TAG: v11
+
 # =====================================================
 # 1️⃣ CHECKOUT
 # =====================================================
@@ -67,16 +71,50 @@ jobs:
             -Dsonar.language=py
 
 # =====================================================
+# 5️⃣ OWASP DEPENDENCY CHECK (SCA)
+# =====================================================
+  owasp:
+    runs-on: ubuntu-latest
+    needs: sonarqube
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@v2.1.0
+        env:
+          JAVA_HOME: ""
+        with:
+          project: "python-app"
+          path: "."
+          format: "HTML"
+          out: "reports"
+          args: >
+            --noupdate
+
+# =====================================================
+# 6️⃣ DOCKER BUILD
+# =====================================================
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: owasp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Build
+        run: |
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
+
+# =====================================================
 # 7️⃣ TRIVY IMAGE SCAN
 # =====================================================
   trivy:
     runs-on: ubuntu-latest
-    needs: sonarqube
+    needs: docker-build
     steps:
       - name: Trivy Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: cloudketan/python-app:v15
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: 0
@@ -96,7 +134,7 @@ jobs:
 
       - name: Docker Push
         run: |
-          docker push cloudketan/python-app:v15
+          docker push $IMAGE_NAME:$IMAGE_TAG
 
 # =====================================================
 # 9️⃣ KUBERNETES DEPLOY
