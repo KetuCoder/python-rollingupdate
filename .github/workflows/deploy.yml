@@ -1,75 +1,153 @@
-name: DevSecOps Pipeline For Python Application
+name: DevSecOps Python Flask Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  pull_request:
 
+env:
+  IMAGE_NAME: cloudketan/python-app
+  IMAGE_TAG: v11
+
+# =====================================================
+# 1️⃣ CHECKOUT
+# =====================================================
 jobs:
-  # 1st checkout
   checkout:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
-    
-  python-build:
+
+# =====================================================
+# 2️⃣ PYTHON SETUP & DEPENDENCIES
+# =====================================================
+  python-setup:
     runs-on: ubuntu-latest
     needs: checkout
     steps:
       - uses: actions/checkout@v4
 
-      - name: SetUp Python
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
-      - name: Install Python Depedencies
+
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-  docker-build:
+# =====================================================
+# 3️⃣ GITLEAKS (SECRET SCANNING)
+# =====================================================
+  gitleaks:
     runs-on: ubuntu-latest
-    needs: python-build
+    needs: python-setup
     steps:
       - uses: actions/checkout@v4
-    
-      - name: Docker Login 
-        uses: docker/login-action@v3
+
+      - name: GitLeaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        
+# =====================================================
+# 4️⃣ SONARQUBE (SAST)
+# =====================================================
+  sonarqube:
+    runs-on: ubuntu-latest
+    needs: gitleaks
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          args: >
+            -Dsonar.projectKey=python-app
+            -Dsonar.sources=.
+            -Dsonar.language=py
 
-      - name: Build Docker Image
+# =====================================================
+# 5️⃣ OWASP DEPENDENCY CHECK (SCA)
+# =====================================================
+  owasp:
+    runs-on: ubuntu-latest
+    needs: sonarqube
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: "python-app"
+          path: "."
+          format: "HTML"
+        env:
+          JAVA_HOME: /usr/lib/jvm/java-11-openjdk
+
+# =====================================================
+# 6️⃣ DOCKER BUILD
+# =====================================================
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: owasp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Docker Build
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME}}/py-app:v1 .
+          docker build -t $IMAGE_NAME:$IMAGE_TAG .
 
-  docker-push:
+# =====================================================
+# 7️⃣ TRIVY IMAGE SCAN
+# =====================================================
+  trivy:
     runs-on: ubuntu-latest
     needs: docker-build
+    steps:
+      - name: Trivy Scan
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: 0
+
+# =====================================================
+# 8️⃣ DOCKER PUSH
+# =====================================================
+  docker-push:
+    runs-on: ubuntu-latest
+    needs: trivy
     steps:
       - name: Docker Login
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
-      
-      - name: Push Docker Image
+
+      - name: Docker Push
         run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/py-app:v1
-        
-  Kubernetes:
+          docker push $IMAGE_NAME:$IMAGE_TAG
+
+# =====================================================
+# 9️⃣ KUBERNETES DEPLOY
+# =====================================================
+  k8s-deploy:
     runs-on: ubuntu-latest
     needs: docker-push
     steps:
       - uses: actions/checkout@v4
 
-      - name: SetUp KubeConfig
+      - name: Set Kubeconfig
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
-      
-      - name: Deploy To Kubernetes
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f K8s/
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
