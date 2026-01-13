@@ -80,9 +80,9 @@ jobs:
     steps:
       - name: Download OWASP Dependency Check
         run: |
-          VERSION=$(curl -s https://jeremylong.github.io/DependencyCheck/current.txt)
-          curl -sL "https://github.com/jeremylong/DependencyCheck/releases/download/v$VERSION/dependency-check-$VERSION-release.zip" --output dependency-check.zip
-          unzip dependency-check.zip
+          VERSION=9.0.9
+          curl -fSL "https://github.com/jeremylong/DependencyCheck/releases/download/v$VERSION/dependency-check-$VERSION-release.zip" -o dependency-check.zip
+          unzip -o dependency-check.zip
 
       - name: Run Dependency Check
         run: |
