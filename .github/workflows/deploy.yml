@@ -107,7 +107,7 @@ jobs:
 # =====================================================
   docker-push:
     runs-on: self-hosted
-    needs: trivy
+    needs: docker-build
     steps:
       - name: Docker Login
         uses: docker/login-action@v3
@@ -124,7 +124,7 @@ jobs:
 # =====================================================
   trivy:
     runs-on: self-hosted
-    needs: docker-build
+    needs: docker-push
     steps:
       - name: Trivy Scan
         uses: aquasecurity/trivy-action@0.20.0
@@ -139,7 +139,7 @@ jobs:
 # =====================================================
   k8s-deploy:
     runs-on: self-hosted
-    needs: docker-push
+    needs: trivy
     steps:
       - uses: actions/checkout@v4
 
