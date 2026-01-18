@@ -16,14 +16,17 @@ jobs:
   checkout:
     runs-on: self-hosted
     steps:
+
+      - name: Clean temporary files
+        run: |
+          sudo rm -rf /tmp/gitleaks* 
+          sudo rm -rf /tmp/*   # optional, clears leftover temp files
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           clean: false
-
-      - name: Cleanup old reports
-        run: rm -rf ./reports || true
-
+          
   # =====================================================
   # 2️⃣ PYTHON SETUP & DEPENDENCIES
   # =====================================================
