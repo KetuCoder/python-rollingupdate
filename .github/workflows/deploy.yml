@@ -154,6 +154,11 @@ jobs:
         with:
           clean: false
 
+      - name: Set Kubeconfig
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 --decode > $HOME/.kube/config
+
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/deployment.yaml
