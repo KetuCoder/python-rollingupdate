@@ -101,7 +101,7 @@ jobs:
           project: "python-app"
           path: "."
           format: "HTML"
-          out: "reports"
+          out: ${{ runner.temp }}/dependency-check
           args: >
             --noupdate
 
