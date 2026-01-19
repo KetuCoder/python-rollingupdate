@@ -35,6 +35,8 @@ jobs:
     needs: checkout
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -54,6 +56,8 @@ jobs:
     needs: python-setup
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: GitLeaks Scan
         uses: gitleaks/gitleaks-action@v2
@@ -66,6 +70,8 @@ jobs:
     needs: gitleaks
     steps:
       - uses: actions/checkout@v4
+        with:
+        clean: false
 
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2
@@ -86,6 +92,8 @@ jobs:
     needs: sonarqube
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
@@ -105,6 +113,8 @@ jobs:
     needs: owasp
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: Docker Build
         run: |
@@ -135,6 +145,8 @@ jobs:
     needs: docker-build
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: Docker Push
         run: |
@@ -148,6 +160,8 @@ jobs:
     needs: docker-push
     steps:
       - uses: actions/checkout@v4
+        with:
+          clean: false
 
       - name: Set Kubeconfig
         run: |
