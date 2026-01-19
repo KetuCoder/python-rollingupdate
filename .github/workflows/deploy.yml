@@ -126,16 +126,15 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_PASSWORD }}
 
-      - name: Trivy Scan
-        uses: aquasecurity/trivy-action@v0.24.0
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
-          format: table
-          exit-code: 0
+          format: 'table'
+          exit-code: '1'
           ignore-unfixed: true
-          vuln-type: os,library
-        env:
-          TMPDIR: ${{ github.workspace }}/.tmp
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
 
   # =====================================================
   # 7️⃣ DOCKER PUSH
