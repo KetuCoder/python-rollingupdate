@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: python-app
-        image: cloudketan/python-app:v1
+        image: cloudketan/python-app:${{ IMAGE_TAG }}
         ports:
         - containerPort: 5000
         env:
